@@ -10,7 +10,7 @@ PROJECT_NAME: str = os.getenv("PROJECT_NAME", "VulnScan-Server")
 SUPABASE_URL: str = os.getenv("SUPABASE_URL")
 SUPABASE_KEY: str = os.getenv("SUPABASE_KEY")
 
-STORAGE_BUCKET = "cloud-files"
+STORAGE_BUCKET = "repo-files"
 FILES_TABLE = "files"
 PROJECTS_TABLE = "projects"
 SCANS_TABLE = "scans"
