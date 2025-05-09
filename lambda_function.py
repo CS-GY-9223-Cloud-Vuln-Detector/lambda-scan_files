@@ -1,6 +1,9 @@
 import json
+import requests
 from supabase_client import get_supabase
 from utils import get_files_by_project, update_scan_status, scan_files
+from config import API_GATEWAY_URL
+
 
 supabase = get_supabase()
 
@@ -10,15 +13,17 @@ def lambda_handler(event, context):
     # For example, if using SQS, the message would be in event['Records'][0]['body']
     message = event.get("Records", [{}])[0].get("body", {})
 
-    if "scan_id" not in message:
+    data = json.loads(message)
+
+    if "scan_id" not in data:
         return {"statusCode": 400, "body": json.dumps("Missing scan_id in message")}
 
-    if "project_id" not in message:
+    if "project_id" not in data:
         return {"statusCode": 400, "body": json.dumps("Missing project_id in message")}
 
     # Process the message
-    scan_id = message["scan_id"]
-    project_id = message["project_id"]
+    scan_id = data["scan_id"]
+    project_id = data["project_id"]
     print(f"Received Scan ID: {scan_id}")
     print(f"Received Project ID: {project_id}")
 
@@ -46,16 +51,29 @@ def lambda_handler(event, context):
         status=1,
     )
 
-    files = get_files_by_project(project_id)
+    # files = get_files_by_project(project_id)
 
-    if not files:
+    # if not files:
+    #     update_scan_status(
+    #         scan_id=scan_id,
+    #         status=-1,
+    #     )
+    #     return {"statusCode": 404, "body": json.dumps("No files found")}
+
+    # scan_files(scan_id=scan_id, project_id=project_id, files=files)
+
+    res = requests.post(
+        f"{API_GATEWAY_URL}/bandit/",
+        json={"scan_id": scan_id, "project_id": project_id},
+    )
+
+    if res.status_code != 200:
+        print(f"Error in scan.")
         update_scan_status(
             scan_id=scan_id,
             status=-1,
         )
-        return {"statusCode": 404, "body": json.dumps("No files found")}
-
-    scan_files(scan_id=scan_id, project_id=project_id, files=files)
+        return {"statusCode": 500, "body": json.dumps("Scan failed")}
 
     print(f"Scan completed for ID: {scan_id}")
 
@@ -66,26 +84,20 @@ def test_lambda_handler():
     event = {
         "Records": [
             {
-                "messageId": "11d6ee51-4cc7-4302-9e22-7cd8afdaadf5",
-                "receiptHandle": "AQEBBX8nesZEXmkhsmZeyIE8iQAMig7qw...",
-                "body": {
-                    "scan_id": "312f7035-42ff-4ff4-8c89-620562bf7e62",
-                    "project_id": "288732f8-56b7-473c-ba3f-b7194d3ff4d5",
-                },
+                "messageId": "72b69545-c131-4aae-830b-81bbedbb832f",
+                "receiptHandle": "AQEBOurZ/kYC+Fxt0c8OtWW98REetWV/2Pd2fgJSZAlkWHSfCjvbXAeQ8YplIAFcBOUbNBjzwfGLQSJUVOI2Knk68AM+njQ65h6dMFuMWTCBirtpeuq7Y8SPUgRZW131pcH4oN+GRTGXWi/8x2BMdwzL6t5lvljsh/mZ4px6pdnn7Q5jGnPDjiEwBVVWeiG/EgZwqyoNzivNehSjSsq5oQ2C0Vc6iA6+/a/eHY0jiXXfQVC88Tn83Kdl4G25WUZ8Rk2urxIeVzMw07Ng9D+AF3HbAJc9WirIXhSf5AhC0PQCZf2L0pTZYcfPbTMdr6sHSxTWOFCuGvwpUe/j1ZfjKgvXD3+B1UOOFr6lZyM9oXFblhHgqhZlY686ABXtVsiIT81koQAfz5hoW790Lm90/Njc8w==",
+                "body": '{"scan_id": "fcd30681-f90c-4ebc-bbfb-92f17c9d65d4", "project_id": "a2724a5f-5e7f-4c62-9252-4f8ff8ea912c"}',
                 "attributes": {
-                    "ApproximateReceiveCount": "1",
-                    "SentTimestamp": "1573251510774",
-                    "SequenceNumber": "18849496460467696128",
-                    "MessageGroupId": "1",
-                    "SenderId": "AIDAIO23YVJENQZJOL4VO",
-                    "MessageDeduplicationId": "1",
-                    "ApproximateFirstReceiveTimestamp": "1573251510774",
+                    "ApproximateReceiveCount": "3",
+                    "SentTimestamp": "1746736446997",
+                    "SenderId": "AIDA2FXADWYB3CEHXCZ7R",
+                    "ApproximateFirstReceiveTimestamp": "1746736447006",
                 },
                 "messageAttributes": {},
-                "md5OfBody": "e4e68fb7bd0e697a0ae8f1bb342846b3",
+                "md5OfBody": "5fe3cbaf4ad8dfa80ef9216d5d209d9d",
                 "eventSource": "aws:sqs",
-                "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:fifo.fifo",
-                "awsRegion": "us-east-2",
+                "eventSourceARN": "arn:aws:sqs:us-east-1:699475932675:vulnscan-scans-queue",
+                "awsRegion": "us-east-1",
             }
         ]
     }

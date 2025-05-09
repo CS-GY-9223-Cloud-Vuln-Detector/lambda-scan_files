@@ -18,3 +18,4 @@ VULNERABILITIES_TABLE = "vulnerabilities"
 USERS_TABLE = "users"
 
 SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
+API_GATEWAY_URL = os.getenv("API_GATEWAY_URL")
